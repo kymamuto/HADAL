@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HADAL — 심해 채굴전</title>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#020912;--bg2:#030C18;--bg3:#040E1C;
+  --border:#0D2030;--border2:#091E2E;
+  --cyan:#00CCEE;--cyan2:#0099BB;
+  --green:#00FF99;--green2:#00BB77;--green3:#001A0E;
+  --red:#FF3366;--red2:#CC2244;--red3:#1A0008;
+  --amber:#FFBB22;--amber2:#CC9900;--amber3:#1A1200;
+  --purple:#AA44FF;--purple2:#7722CC;--purple3:#0A0020;
+  --yellow:#FFDD44;--yellow3:#1A1500;
+  --text:#9BBFCC;--text2:#4A7888;--text3:#5A8898;
+  --mono:'Oxanium','Courier New',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Oxanium','Courier New',monospace;overflow-x:hidden;}
+
+/* ── 레이아웃 ── */
+#app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);}
+
+/* ── 탑바 ── */
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-bar{width:2px;height:20px;background:var(--cyan);}
+.logo-txt{font-size:16px;font-weight:500;color:var(--cyan);letter-spacing:.14em;}
+.logo-sub{font-size:8px;color:var(--text2);letter-spacing:.1em;margin-top:2px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.turn-display{text-align:right;}
+.turn-now{font-size:20px;font-weight:500;color:var(--cyan);display:block;line-height:1;}
+.turn-max{font-size:8px;color:var(--text3);letter-spacing:.1em;}
+.tut-btn{padding:5px 10px;font-size:9px;letter-spacing:.1em;border:0.5px solid var(--cyan2);background:transparent;color:var(--cyan);font-family:var(--mono);cursor:pointer;border-radius:2px;}
+.tut-btn:hover{background:var(--cyan2)22;}
+
+/* ── 레벨 바 ── */
+.level-bar-wrap{display:flex;align-items:center;gap:8px;padding:4px 14px;background:var(--bg2);border-bottom:1px solid var(--border2);}
+.level-label{font-size:8px;color:var(--text3);letter-spacing:.08em;white-space:nowrap;min-width:48px;}
+.level-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.level-fill{height:100%;border-radius:2px;background:#AA44FF;transition:width .4s;}
+.level-info{font-size:9px;font-weight:500;color:#AA44FF;min-width:52px;text-align:right;white-space:nowrap;}
+
+/* ── 레벨업 팝업 ── */
+.lvup-toast{display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);
+  background:#0A0020;border:1px solid #AA44FF;padding:10px 20px;text-align:center;z-index:500;
+  opacity:0;transition:opacity .3s,transform .3s;}
+.lvup-toast.show{display:block;opacity:1;transform:translateX(-50%) translateY(0);}
+.lvup-txt{font-size:11px;font-weight:500;color:#AA44FF;letter-spacing:.1em;}
+.lvup-num{font-size:22px;font-weight:600;color:#CC88FF;letter-spacing:.06em;}
+.turn-bar-label{font-size:8px;color:var(--text3);letter-spacing:.08em;white-space:nowrap;}
+.turn-bar-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.turn-bar-fill{height:100%;border-radius:2px;transition:width .3s,background .3s;}
+.turn-bar-remain{font-size:9px;font-weight:500;min-width:24px;text-align:right;}
+
+/* ── 페이즈 바 ── */
+.prow{display:flex;align-items:center;gap:4px;padding:3px 14px;background:var(--bg2);border-bottom:1px solid var(--border2);}
+.pd{width:5px;height:5px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.pd.on{background:var(--cyan);}.pd.dn{background:var(--green2);}
+.ps{flex:1;height:1px;background:var(--border);}
+.ps.on{background:var(--cyan);}.ps.dn{background:var(--green2);}
+.plbl{font-size:8px;color:var(--text3);white-space:nowrap;}
+
+/* ── HUD ── */
+.hud{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+.hc{background:var(--bg2);padding:6px 10px;}
+.hl{font-size:8px;color:var(--text2);letter-spacing:.1em;margin-bottom:2px;}
+.hv{font-size:14px;font-weight:500;}
+
+/* ── 경고 바 ── */
+.wb{display:none;padding:4px 14px;font-size:9px;align-items:center;gap:6px;border-bottom:1px solid var(--border);}
+.wb.on{display:flex;}
+
+/* ── 스킬 바 ── */
+.skill-bar{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+.skill-btn{padding:8px 10px;background:var(--bg2);border:none;cursor:pointer;text-align:left;font-family:var(--mono);transition:background .1s;}
+.skill-btn:active{background:var(--bg3);}
+.skill-btn.active-skill{background:#0A2038;outline:1px solid var(--cyan);outline-offset:-1px;}
+.skill-btn.used{opacity:.3;cursor:default;}
+.sk-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.sk-name{font-size:10px;font-weight:500;letter-spacing:.06em;}
+.sk-badge{font-size:8px;padding:1px 5px;border-radius:2px;}
+.sk-desc{font-size:8px;color:var(--text3);letter-spacing:.03em;line-height:1.4;}
+
+/* ── 맵 ── */
+.map{background:var(--bg);padding:10px 6px;flex:1;}
+.hrow{display:flex;justify-content:center;margin-bottom:2px;}
+.ht{width:42px;height:48px;margin:0 1px;
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;border:none;outline:none;font-family:var(--mono);
+  -webkit-tap-highlight-color:transparent;transition:filter .1s;}
+.ht:active{filter:brightness(1.4);}
+.t-empty{background:#0E1F2E;}
+.t-mine{background:#0D3048;}
+.t-base{background:#0C4460;}
+.t-barrier{background:#1A3A20;}
+.t-barrier-weak{background:#2A1A00;outline:1px dashed #FF8822;outline-offset:-2px;} /* 붕괴 임박 */
+.t-h2-1{background:#0C2438;}
+.t-h2-3{background:#0C2E50;}
+.t-h2-5{background:#0C1E60;}
+.t-mined{background:#0C3824;}
+.t-beast-zone{background:#2A0A14;}
+.t-beast-head{background:#4A0A18;}
+.t-prev{background:#2A1800;}
+.t-adj{background:#0E1F2E;outline:2px solid #00EE88;outline-offset:-2px;}
+.t-barrier-ok{background:#0D3048;outline:2px solid var(--yellow);outline-offset:-2px;}
+.t-barrier-no{background:#0D3048;outline:1px solid #3A3020;outline-offset:-2px;opacity:.4;}
+.t-drone-ok{background:#0E1F2E;outline:2px solid var(--purple);outline-offset:-2px;}
+.t-drone-no{opacity:.3;}
+/* SONAR LURE */
+.t-sonar-ok{background:#0E1F2E;outline:2px solid #00FFCC;outline-offset:-2px;}  /* 유인 가능 */
+.t-sonar-no{opacity:.3;}                                                          /* 유인 불가 */
+.tp{font-size:7px;pointer-events:none;line-height:1;margin-top:1px;}
+
+/* ── 메시지 ── */
+.msg{padding:5px 14px;font-size:9px;color:var(--text3);border-top:1px solid var(--border);min-height:26px;letter-spacing:.04em;}
+.msg.ok{color:var(--green);}.msg.bad{color:var(--red);}.msg.warn{color:var(--amber);}.msg.skill{color:var(--cyan);}
+
+/* ── 하단 버튼 ── */
+.brow{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border);}
+.abtn{padding:10px;font-size:9px;letter-spacing:.1em;border:none;cursor:pointer;background:var(--bg2);color:var(--text3);font-family:var(--mono);}
+.abtn:hover{color:var(--cyan);}.abtn:active{background:var(--bg3);}
+
+/* ── 결과 ── */
+.res{background:var(--bg);padding:0 12px 12px;}
+.rbox{border:1px solid var(--border);background:var(--bg3);padding:14px;text-align:center;margin-top:8px;}
+.rg{font-size:40px;font-weight:500;margin:6px 0 3px;}
+.rt{font-size:10px;color:var(--text);letter-spacing:.07em;margin-bottom:3px;}
+.rs{font-size:9px;color:var(--text2);line-height:1.6;margin-bottom:8px;}
+.rbtn{width:100%;padding:9px;font-size:9px;letter-spacing:.1em;cursor:pointer;border:1px solid var(--green2);background:var(--green3);color:var(--green);font-family:var(--mono);}
+.rbtn:active{transform:scale(.97);}
+
+/* ── 팝업 오버레이 ── */
+.sov{display:none;position:fixed;inset:0;background:rgba(2,9,18,.9);z-index:200;align-items:center;justify-content:center;}
+.sov.on{display:flex;}
+.sbox{background:var(--bg3);padding:20px;text-align:center;width:240px;border-radius:2px;}
+.stag{font-size:8px;letter-spacing:.18em;margin-bottom:6px;}
+.stit{font-size:15px;font-weight:500;margin-bottom:4px;}
+.ssub{font-size:9px;color:var(--text2);line-height:1.6;margin-bottom:8px;}
+.snum{font-size:28px;font-weight:500;color:var(--cyan);margin-bottom:2px;}
+.sl2{font-size:8px;color:var(--text2);letter-spacing:.1em;margin-bottom:12px;}
+.spb{width:100%;padding:8px;font-size:9px;letter-spacing:.1em;cursor:pointer;margin-bottom:5px;border:none;font-family:var(--mono);}
+.spb.g{background:var(--green3);color:var(--green);border:1px solid var(--green2);}
+.spb.y{background:var(--amber3);color:var(--amber);border:1px solid var(--amber2);}
+.spb.r{background:var(--red3);color:var(--red);border:1px solid var(--red2);}
+.spb.d{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.spb:active{transform:scale(.97);}
+
+/* ════════════════════════════════
+   튜토리얼 오버레이
+════════════════════════════════ */
+.tov{display:none;position:fixed;inset:0;background:rgba(2,9,18,.95);z-index:300;flex-direction:column;}
+.tov.on{display:flex;}
+.tov-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
+.tov-title{font-size:12px;font-weight:500;color:var(--cyan);letter-spacing:.1em;}
+.tov-step-lbl{font-size:9px;color:var(--text2);}
+.tov-close{width:28px;height:28px;border:0.5px solid var(--border);background:transparent;color:var(--text);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--mono);}
+.tov-close:hover{border-color:var(--red);color:var(--red);}
+
+.tov-body{flex:1;overflow-y:auto;padding:16px;}
+.tov-step{display:none;}
+.tov-step.active{display:block;}
+
+.step-tag{font-size:8px;color:var(--cyan2);letter-spacing:.15em;margin-bottom:8px;}
+.step-title{font-size:16px;font-weight:500;color:var(--cyan);letter-spacing:.06em;margin-bottom:10px;line-height:1.3;}
+.step-desc{font-size:12px;color:var(--text);line-height:1.8;margin-bottom:14px;}
+.step-desc strong{color:var(--green);font-weight:500;}
+.step-desc em{color:var(--amber);}
+
+/* 튜토리얼 일러스트 */
+.step-illust{background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:14px;margin-bottom:14px;}
+.illust-title{font-size:8px;color:var(--text2);letter-spacing:.1em;margin-bottom:10px;}
+.illust-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.tile-demo{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.tile-hex{width:48px;height:54px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;}
+.tile-lbl{font-size:8px;color:var(--text2);text-align:center;letter-spacing:.04em;line-height:1.3;}
+
+/* 규칙 카드 */
+.rule-card{background:var(--bg);border-left:2px solid var(--cyan2);padding:10px 12px;margin-bottom:8px;}
+.rule-card.green{border-color:var(--green2);}
+.rule-card.amber{border-color:var(--amber2);}
+.rule-card.red{border-color:var(--red2);}
+.rule-card.purple{border-color:var(--purple2);}
+.rule-card .rc-title{font-size:9px;font-weight:500;letter-spacing:.08em;margin-bottom:4px;}
+.rule-card .rc-desc{font-size:11px;color:var(--text);line-height:1.7;}
+
+/* 진행 바 */
+.step-progress{display:flex;gap:4px;margin-bottom:14px;}
+.sp-dot{width:20px;height:3px;background:var(--border);border-radius:2px;transition:background .2s;}
+.sp-dot.done{background:var(--green2);}
+.sp-dot.active{background:var(--cyan);}
+
+.tov-footer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;}
+.tov-btn{flex:1;padding:10px;font-size:10px;letter-spacing:.08em;border:none;cursor:pointer;font-family:var(--mono);}
+.tov-btn.prev{background:transparent;color:var(--text2);border:0.5px solid var(--border);}
+.tov-btn.next{background:var(--green3);color:var(--green);border:0.5px solid var(--green2);}
+.tov-btn:active{transform:scale(.97);}
+.tov-btn:disabled{opacity:.3;cursor:default;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── 탑바 ── -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-bar"></div>
+    <div>
+      <div class="logo-txt">HADAL</div>
+      <div class="logo-sub">채굴전 // 심해 수소 확보</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="tut-btn" onclick="openTutorial()">? TUTORIAL</button>
+    <div class="turn-display">
+      <span class="turn-now" id="tn">01</span>
+      <span class="turn-max">/ 15</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── 레벨 바 ── -->
+<div class="level-bar-wrap">
+  <div class="level-label" id="lv-label">LV. 1</div>
+  <div class="level-track"><div class="level-fill" id="lv-fill" style="width:0%;"></div></div>
+  <div class="level-info" id="lv-info">0 / 10</div>
+  <div style="font-size:8px;color:var(--red);letter-spacing:.06em;white-space:nowrap;min-width:36px;text-align:right;" id="lv-min"></div>
+</div>
+
+<!-- ── 잔여 턴 바 ── -->
+<div class="turn-bar-wrap">
+  <div class="turn-bar-label">TURNS LEFT</div>
+  <div class="turn-bar-track"><div class="turn-bar-fill" id="turn-fill" style="width:100%;background:var(--cyan);"></div></div>
+  <div class="turn-bar-remain" id="turn-remain" style="color:var(--cyan);">15</div>
+</div>
+
+<!-- ── 페이즈 바 ── -->
+<div class="prow">
+  <div class="pd on" id="d1"></div><div class="plbl" id="pl1" style="color:var(--cyan);">EARLY</div>
+  <div class="ps on" id="s1"></div>
+  <div class="pd" id="d2"></div><div class="plbl">MID</div>
+  <div class="ps" id="s2"></div>
+  <div class="pd" id="d3"></div><div class="plbl">LATE</div>
+  <div class="ps" id="s3"></div>
+</div>
+
+<!-- ── HUD ── -->
+<div class="hud">
+  <div class="hc"><div class="hl">MY ZONE</div><div class="hv" style="color:var(--green);" id="hz">0</div></div>
+  <div class="hc"><div class="hl">H2</div><div class="hv" style="color:var(--cyan);" id="hh">0</div></div>
+  <div class="hc"><div class="hl">HOLD</div><div class="hv" id="hho" style="color:var(--text3);">—</div></div>
+  <div class="hc"><div class="hl">THREAT</div><div class="hv" id="hth" style="color:var(--text3);">0</div></div>
+</div>
+
+<!-- ── 경고 바 ── -->
+<div class="wb" id="wb">⚠ <span id="wt"></span></div>
+
+<!-- ── 스킬 바 ── -->
+<div class="skill-bar" style="grid-template-columns:1fr 1fr 1fr;">
+  <button class="skill-btn" id="sk-barrier" onclick="toggleSkill('barrier')">
+    <div class="sk-top">
+      <span class="sk-name" style="color:var(--yellow);">⬡ BARRIER</span>
+      <span class="sk-badge" style="background:var(--yellow3);color:var(--yellow);border:0.5px solid var(--yellow);" id="barrier-ct">2회</span>
+    </div>
+    <div class="sk-desc">내 타일·인접 빈 칸 → 장벽<br>☢ 차단 · 2회</div>
+  </button>
+  <button class="skill-btn" id="sk-drone" onclick="toggleSkill('drone')">
+    <div class="sk-top">
+      <span class="sk-name" style="color:var(--purple);">◎ DRONE</span>
+      <span class="sk-badge" style="background:var(--purple3);color:var(--purple);border:0.5px solid var(--purple);" id="drone-ct">2회</span>
+    </div>
+    <div class="sk-desc">7칸 원거리 점령<br>빈 칸만 · 2회</div>
+  </button>
+  <button class="skill-btn" id="sk-sonar" onclick="toggleSkill('sonar')">
+    <div class="sk-top">
+      <span class="sk-name" style="color:#00FFCC;">~ SONAR</span>
+      <span class="sk-badge" style="background:#001A14;color:#00FFCC;border:0.5px solid #00FFCC;" id="sonar-ct">H2-1</span>
+    </div>
+    <div class="sk-desc">선두 유인 (3칸내)<br>수소 -1 · 무제한</div>
+  </button>
+</div>
+
+<!-- ── 맵 ── -->
+<div class="map" id="map"></div>
+
+<!-- ── 메시지 ── -->
+<div class="msg" id="msg">// 15턴 안에 최대한 채굴하세요 · ? TUTORIAL로 규칙 확인</div>
+
+<!-- ── 버튼 ── -->
+<div class="brow">
+  <button class="abtn" onclick="skip()">▶ SKIP TURN</button>
+  <button class="abtn" onclick="rst()">↺ RESTART</button>
+</div>
+
+<!-- ── 결과 ── -->
+<div class="res" id="res"></div>
+
+</div><!-- #app -->
+
+<!-- ── 레벨업 토스트 ── -->
+<div class="lvup-toast" id="lvup-toast">
+  <div class="lvup-txt">LEVEL UP!</div>
+  <div class="lvup-num" id="lvup-num">LV. 2</div>
+</div>
+
+<!-- ════ 결과 팝업 ════ -->
+<div class="sov" id="sov">
+  <div class="sbox" id="sbox">
+    <div class="stag" id="stag"></div>
+    <div class="stit" id="stit"></div>
+    <div class="ssub" id="ssub"></div>
+    <div class="snum" id="snum"></div>
+    <div class="sl2" id="sl2"></div>
+    <button class="spb" id="spb1" onclick="closeS()"></button>
+    <button class="spb d" onclick="rst()">↺ 재시작</button>
+  </div>
+</div>
+
+<!-- ════ 튜토리얼 오버레이 ════ -->
+<div class="tov" id="tov">
+  <div class="tov-header">
+    <div>
+      <div class="tov-title">HADAL // TUTORIAL</div>
+      <div class="tov-step-lbl" id="tov-step-lbl">1 / 7</div>
+    </div>
+    <button class="tov-close" onclick="closeTutorial()">✕</button>
+  </div>
+
+  <div class="tov-body">
+
+    <!-- STEP 1: 게임 소개 -->
+    <div class="tov-step active" id="step-1">
+      <div class="step-progress" id="prog-1"></div>
+      <div class="step-tag">// STEP 01 — 게임 소개</div>
+      <div class="step-title">HADAL이란?</div>
+      <div class="step-desc">
+        2183년, 기후변화로 대부분의 대륙이 바닷속에 잠겼습니다.<br><br>
+        인류의 생존을 위해 당신은 <strong>심해 채굴 작전</strong>을 수행합니다. 심해 바닥에 매장된 <strong>수소(H2)</strong>를 채굴해 수송선의 연료로 사용하는 것이 목표입니다.<br><br>
+        하지만 방사능에 오염된 <em>기형 괴생물체</em>들이 당신의 채굴을 방해합니다.
+      </div>
+      <div class="rule-card">
+        <div class="rc-title" style="color:var(--cyan);">🎯 최종 목표</div>
+        <div class="rc-desc"><strong>15턴</strong> 안에 최대한 많은 수소를 채굴하세요.<br>채굴한 수소량이 다음 수송전의 이동력이 됩니다.</div>
+      </div>
+      <div class="rule-card green">
+        <div class="rc-title" style="color:var(--green2);">✓ 채굴 성공 조건</div>
+        <div class="rc-desc">모든 H2 거점을 채굴하면 즉시 성공 — 이동이 가능해도 종료됩니다.</div>
+      </div>
+    </div>
+
+    <!-- STEP 2: 타일 설명 -->
+    <div class="tov-step" id="step-2">
+      <div class="step-progress" id="prog-2"></div>
+      <div class="step-tag">// STEP 02 — 타일 종류</div>
+      <div class="step-title">각 타일이 뜻하는 것</div>
+      <div class="step-illust">
+        <div class="illust-title">TILE LEGEND</div>
+        <div class="illust-grid">
+          <div class="tile-demo">
+            <div class="tile-hex" style="background:#0C4460;">
+              <span style="color:#00CCEE;font-size:7px;letter-spacing:.04em;">BASE</span>
+            </div>
+            <div class="tile-lbl">기지<br>(시작점)</div>
+          </div>
+          <div class="tile-demo">
+            <div class="tile-hex t-adj">
+              <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill="none" stroke="#00EE88" stroke-width="1.5"/></svg>
+            </div>
+            <div class="tile-lbl">점령 가능<br>(초록 테두리)</div>
+          </div>
+          <div class="tile-demo">
+            <div class="tile-hex" style="background:#0C2E50;">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="#00AADD" stroke-width="1.4"/>
+                <circle cx="12" cy="12" r="3.8" fill="#00AADD"/>
+                <circle cx="12" cy="2" r="1.8" fill="#00AADD"/>
+              </svg>
+            </div>
+            <div class="tile-lbl">수소 거점<br>(H2)</div>
+          </div>
+          <div class="tile-demo">
+            <div class="tile-hex" style="background:#0C3824;">
+              <svg width="20" height="20" viewBox="0 0 20 20">
+                <polygon points="10,2 18,10 10,18 2,10" fill="#004D22" stroke="#00EE88" stroke-width="1.5"/>
+                <text x="10" y="14" text-anchor="middle" fill="#00FF99" font-size="9" font-weight="bold" font-family="Oxanium, Courier New">+3</text>
+              </svg>
+            </div>
+            <div class="tile-lbl">채굴 완료<br>(수소 획득)</div>
+          </div>
+          <div class="tile-demo">
+            <div class="tile-hex" style="background:#4A0A18;">
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="11" fill="#5A0818" stroke="#FF4455" stroke-width="1.8"/>
+                <circle cx="12" cy="12" r="3" fill="#FF4455"/>
+                <path d="M12 9 A3 3 0 0 1 14.6 10.5 L19.5 7.5 A9 9 0 0 0 4.5 7.5 Z" fill="#FF4455"/>
+                <path d="M14.6 13.5 A3 3 0 0 1 12 15 L12 21 A9 9 0 0 0 21 7.5 Z" fill="#FF4455"/>
+                <path d="M9.4 13.5 A3 3 0 0 1 9.4 10.5 L4.5 7.5 A9 9 0 0 0 12 21 Z" fill="#FF4455"/>
+              </svg>
+            </div>
+            <div class="tile-lbl">괴생물체<br>(선두)</div>
+          </div>
+          <div class="tile-demo">
+            <div class="tile-hex" style="background:#1A3A20;outline:2px solid #44FF88;outline-offset:-2px;">
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <polygon points="9,2 16,9 9,16 2,9" fill="#1A3A20" stroke="#44FF88" stroke-width="1.5"/>
+                <text x="9" y="12.5" text-anchor="middle" fill="#44FF88" font-size="7" font-weight="bold" font-family="Oxanium, Courier New">▪</text>
+              </svg>
+            </div>
+            <div class="tile-lbl">장벽<br>(BARRIER)</div>
+          </div>
+        </div>
+      </div>
+      <div class="step-desc">
+        수소 아이콘의 <strong>밝기</strong>로 수소량을 구분하세요.<br>
+        밝고 클수록 채굴 시 더 많은 수소를 얻습니다 (+1 / +3 / +5).
+      </div>
+    </div>
+
+    <!-- STEP 3: 기본 이동 -->
+    <div class="tov-step" id="step-3">
+      <div class="step-progress" id="prog-3"></div>
+      <div class="step-tag">// STEP 03 — 기본 조작</div>
+      <div class="step-title">어떻게 움직이나요?</div>
+      <div class="step-desc">
+        <strong>초록 테두리</strong>가 표시된 칸을 탭하면 해당 칸을 점령합니다. 내 영역에 인접한 칸만 점령할 수 있습니다.
+      </div>
+      <div class="rule-card green">
+        <div class="rc-title" style="color:var(--green2);">H2 거점 채굴 방법</div>
+        <div class="rc-desc">
+          1. H2 거점을 탭해 점령<br>
+          2. <strong>3턴</strong> 동안 유지 (빼앗기지 않게!)<br>
+          3. 3턴 후 자동으로 채굴 완료 → 수소 획득
+        </div>
+      </div>
+      <div class="rule-card amber">
+        <div class="rc-title" style="color:var(--amber2);">⚠ 주의</div>
+        <div class="rc-desc">H2 거점 점령 후 괴생물체에 빼앗기면 카운터가 초기화됩니다. 주변을 먼저 확보하세요.</div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-title" style="color:var(--cyan2);">TURN 소모 규칙</div>
+        <div class="rc-desc">탭 1회 = 1턴 소모. SKIP TURN 버튼으로 턴만 넘길 수도 있습니다.</div>
+      </div>
+    </div>
+
+    <!-- STEP 4: 괴생물체 -->
+    <div class="tov-step" id="step-4">
+      <div class="step-progress" id="prog-4"></div>
+      <div class="step-tag">// STEP 04 — 위협 : 괴생물체</div>
+      <div class="step-title">☢ 괴생물체를 조심하세요</div>
+      <div class="step-desc">
+        괴생물체는 매 턴 인접 칸을 점령하며 <strong>영역을 확장</strong>합니다. 내 영역과 H2 거점을 우선적으로 노립니다.
+      </div>
+      <div class="rule-card red">
+        <div class="rc-title" style="color:var(--red2);">☢ 확장 속도</div>
+        <div class="rc-desc">
+          초반(1~7턴) : 매 턴 1칸 확장<br>
+          중반 이후 : 매 턴 2칸 확장<br><br>
+          추가 군락이 <em>5턴, 10턴, 14턴</em>에 맵 가장자리에서 등장합니다.
+        </div>
+      </div>
+      <div class="rule-card red">
+        <div class="rc-title" style="color:var(--red2);">⚡ SURGE — 돌진</div>
+        <div class="rc-desc">
+          <strong>매 5턴(5·10·15턴)</strong>에 발동. 선두 1마리가 기지 방향으로 최대 3칸 돌진합니다.<br>
+          발동 1턴 전 경고 배너가 뜨니 BARRIER로 경로를 차단하세요.
+        </div>
+      </div>
+      <div class="rule-card" style="border-color:#CC44FF;">
+        <div class="rc-title" style="color:#AA44FF;">🧫 SPORE — 포자 분열</div>
+        <div class="rc-desc">
+          <strong>초반 1~6턴 사이 랜덤 2회</strong> 발동. 플레이어 영역 근처(2~4칸)에 새 군락이 기습 출현합니다.<br>
+          DRONE으로 즉시 해당 위치를 선점하거나 BARRIER로 차단하세요.
+        </div>
+      </div>
+      <div class="rule-card">
+        <div class="rc-title" style="color:var(--cyan2);">종료 조건</div>
+        <div class="rc-desc">모든 인접 칸이 괴생물체에 막히면 <strong>이동 불가 — 채굴 종료</strong>로 게임이 끝납니다.</div>
+      </div>
+    </div>
+
+    <!-- STEP 5: 스킬 -->
+    <div class="tov-step" id="step-5">
+      <div class="step-progress" id="prog-5"></div>
+      <div class="step-tag">// STEP 05 — 스킬 시스템</div>
+      <div class="step-title">BARRIER & DRONE</div>
+      <div class="step-desc">
+        각 스킬은 한 판에 <strong>2회</strong>만 사용 가능합니다. 타이밍이 핵심입니다.
+      </div>
+      <div class="rule-card" style="border-color:var(--yellow);">
+        <div class="rc-title" style="color:var(--yellow);">⬡ BARRIER — 장벽 설치</div>
+        <div class="rc-desc">
+          <strong>사용법:</strong> BARRIER 버튼 탭 → 노란 테두리 칸 탭<br>
+          <strong>설치 가능:</strong> 내 타일 또는 내 타일에 인접한 빈 칸 (1칸 이내)<br>
+          <strong>효과:</strong> 해당 칸이 장벽이 되어 괴생물체가 진입 불가<br>
+          <strong>제한:</strong> H2 거점, 기지, 채굴 완료 타일, 괴생물체 영역 불가
+        </div>
+      </div>
+      <div class="rule-card" style="border-color:#00FFCC;">
+        <div class="rc-title" style="color:#00CCAA;">~ SONAR LURE — 괴생물체 유인</div>
+        <div class="rc-desc">
+          <strong>사용법:</strong> SONAR 버튼 탭 → 청록 테두리 칸(3칸 내) 탭<br>
+          <strong>효과:</strong> 선두 괴생물체 1마리가 선택한 칸으로 이동<br>
+          <strong>비용:</strong> 수소 -1 (수소가 0이면 사용 불가)<br>
+          <strong>횟수:</strong> 제한 없음 — 수소만 있으면 계속 사용 가능<br>
+          <strong>예외:</strong> 괴생물체에 빼앗긴 H2 거점으로는 유인 가능
+        </div>
+      </div>
+        <div class="rc-desc">
+          <strong>사용법:</strong> DRONE 버튼 탭 → 보라 테두리 칸 탭<br>
+          <strong>효과:</strong> 최대 7칸 거리의 빈 칸을 즉시 점령 (1턴 소모)<br>
+          <strong>제한:</strong> H2 거점, 괴생물체 영역에는 사용 불가
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6: 턴 제한 & 전략 -->
+    <div class="tov-step" id="step-6">
+      <div class="step-progress" id="prog-6"></div>
+      <div class="step-tag">// STEP 06 — 전략 가이드</div>
+      <div class="step-title">15턴을 어떻게 써야 할까?</div>
+      <div class="step-desc">
+        거점이 기지에서 멀수록 수소량이 많지만 시간도 많이 걸립니다. 어떤 거점을 <em>포기</em>할지 결정하는 것도 전략입니다.
+      </div>
+      <div class="rule-card green">
+        <div class="rc-title" style="color:var(--green2);">초반 (1~5턴)</div>
+        <div class="rc-desc">빠르게 영역 확장 → 가능한 많은 H2 거점 점령 → 괴생물체와 거리 벌리기</div>
+      </div>
+      <div class="rule-card amber">
+        <div class="rc-title" style="color:var(--amber2);">중반 (6~10턴)</div>
+        <div class="rc-desc">점령한 H2 거점 사수 → BARRIER로 핵심 경로 차단 → 추가 군락 등장 주의</div>
+      </div>
+      <div class="rule-card red">
+        <div class="rc-title" style="color:var(--red2);">후반 (11~15턴)</div>
+        <div class="rc-desc">DRONE으로 고수익 거점 선점 → 포위 전 마지막 채굴 완료 집중</div>
+      </div>
+    </div>
+
+    <!-- STEP 7: 등급 -->
+    <div class="tov-step" id="step-7">
+      <div class="step-progress" id="prog-7"></div>
+      <div class="step-tag">// STEP 07 — 등급 시스템</div>
+      <div class="step-title">채굴 성과 등급</div>
+      <div class="step-desc">
+        채굴한 수소량에 따라 등급이 결정됩니다. 확보한 수소는 수송전 이동력으로 연결됩니다.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="rule-card green" style="text-align:center;padding:12px 8px;">
+          <div style="font-size:28px;font-weight:500;color:var(--green);">S</div>
+          <div class="rc-desc">H2 90%+ (16~18)<br>완벽한 채굴</div>
+        </div>
+        <div class="rule-card" style="text-align:center;padding:12px 8px;">
+          <div style="font-size:28px;font-weight:500;color:var(--cyan);">A</div>
+          <div class="rc-desc">H2 70%+ (13~15)<br>성공적인 작전</div>
+        </div>
+        <div class="rule-card amber" style="text-align:center;padding:12px 8px;">
+          <div style="font-size:28px;font-weight:500;color:var(--amber);">B</div>
+          <div class="rc-desc">H2 50%+ (9~12)<br>절반의 성공</div>
+        </div>
+        <div class="rule-card red" style="text-align:center;padding:12px 8px;">
+          <div style="font-size:28px;font-weight:500;color:var(--red);">C/F</div>
+          <div class="rc-desc">H2 50% 미만<br>추가 도전 필요</div>
+        </div>
+      </div>
+      <div class="rule-card green">
+        <div class="rc-title" style="color:var(--green2);">준비 완료!</div>
+        <div class="rc-desc">이제 게임을 시작하세요. 언제든 우측 상단 <strong>? TUTORIAL</strong> 버튼으로 다시 볼 수 있습니다.</div>
+      </div>
+    </div>
+
+  </div><!-- tov-body -->
+
+  <div class="tov-footer">
+    <button class="tov-btn prev" id="tov-prev" onclick="tutStep(-1)" disabled>← 이전</button>
+    <button class="tov-btn next" id="tov-next" onclick="tutStep(1)">다음 →</button>
+  </div>
+</div><!-- .tov -->
+
+<script>
+/* 전역 누적 수소 — IIFE 바깥에 선언해야 rst()로 재시작해도 유지됨 */
+if(typeof window._hadalTotalH2==='undefined'){
+  try{
+    window._hadalTotalH2=parseInt(localStorage.getItem('hadal_total_h2')||'0',10);
+  }catch(e){
+    window._hadalTotalH2=0;
+  }
+}
+(function(){
+const HR=4,HN=3,MT=15,DR=7;
+const TOTAL_STEPS=7;
+let gs={},activeSkill=null,tutCur=1;
+
+/* ══════════════════════════════
+   레벨 시스템 — LV.1~50
+══════════════════════════════ */
+const MAX_LV=50;
+
+/* 배율 함수 — 5레벨마다 단계적 증가 */
+function getLvMult(lv){
+  if(lv<=2)  return 1.0;
+  if(lv<=5)  return 1.5;
+  if(lv<=10) return 2.0;
+  if(lv<=15) return 2.5;
+  if(lv<=20) return 3.0;
+  if(lv<=25) return 3.5;
+  if(lv<=30) return 4.0;
+  if(lv<=35) return 4.5;
+  if(lv<=40) return 5.0;
+  if(lv<=45) return 5.5;
+  return 6.0;
+}
+
+/* 레벨별 한 판 최소 수소 기준 */
+function getLvMinH2(lv){
+  if(lv<=1) return 0;
+  const mult=getLvMult(lv);
+  const maxH2=Math.round(18*mult);
+  const ratio=lv<=5?0.55:lv<=15?0.60:lv<=30?0.65:lv<=45?0.68:0.70;
+  return Math.round(maxH2*ratio);
+}
+
+/* 레벨별 누적 임계값 — 미리 계산해 배열로 저장 */
+const LV_THRESHOLDS=(()=>{
+  const arr=[0]; // LV.1 시작
+  for(let lv=2;lv<=MAX_LV;lv++){
+    const mult=getLvMult(lv);
+    const maxH2=Math.round(18*mult);
+    const neededPans=lv<=5?2:lv<=15?3:lv<=30?4:lv<=45?5:6;
+    arr.push(arr[lv-2]+Math.round(maxH2*neededPans));
+  }
+  return arr;
+})();
+
+/* 강등 시 이동할 레벨 */
+function getDemoteLv(lv){
+  if(lv<=3) return 1;
+  if(lv<=5) return 2;
+  if(lv<=7) return 3;
+  if(lv<=10) return Math.max(1,lv-3);
+  return Math.max(1,lv-Math.ceil(lv/10));
+}
+
+function getLv(total){
+  let lv=1;
+  for(let i=1;i<LV_THRESHOLDS.length;i++){
+    if(total>=LV_THRESHOLDS[i]) lv=i+1; else break;
+  }
+  return Math.min(lv,MAX_LV);
+}
+function loadTotalH2(){return window._hadalTotalH2||0;}
+function saveTotalH2(v){
+  window._hadalTotalH2=v;
+  try{localStorage.setItem('hadal_total_h2',String(v));}catch(e){}
+}
+
+function upLevelBar(){
+  const total=loadTotalH2();
+  const lv=getLv(total);
+  const isMax=lv>=MAX_LV;
+  const cur=LV_THRESHOLDS[lv-1]||0;
+  const next=LV_THRESHOLDS[lv]||LV_THRESHOLDS[MAX_LV-1];
+  const pct=isMax?100:Math.round((total-cur)/(next-cur)*100);
+  const minH2=getLvMinH2(lv);
+  const mult=getLvMult(lv);
+  const maxH2=Math.round(18*mult);
+  document.getElementById('lv-label').textContent=`LV. ${lv}`;
+  document.getElementById('lv-fill').style.width=pct+'%';
+  document.getElementById('lv-info').textContent=isMax?'MAX':`${total-cur} / ${next-cur}`;
+  const minEl=document.getElementById('lv-min');
+  if(minEl) minEl.textContent=minH2>0?`min.${minH2}`:'';
+}
+
+/* 판 종료 시 수소 성과 처리 */
+function processH2Result(h2){
+  const total=loadTotalH2();
+  const lv=getLv(total);
+  const minRequired=getLvMinH2(lv);
+
+  if(lv>1&&h2<minRequired){
+    // 최소 기준 미달 — 강등
+    const demoteLv=getDemoteLv(lv);
+    const demoteTo=LV_THRESHOLDS[demoteLv-1];
+    saveTotalH2(demoteTo);
+    upLevelBar();
+    return{type:'demote',lv,newLv:demoteLv,demoteTo,required:minRequired,got:h2};
+  }
+  // 기준 충족 — 누적 수소 추가 후 레벨업 체크
+  const after=total+h2;
+  saveTotalH2(after);
+  const lvAfter=getLv(after);
+  upLevelBar();
+  if(lvAfter>lv) return{type:'levelup',newLv:lvAfter};
+  return{type:'success'};
+}
+
+function addH2ToTotal(amount){
+  if(amount<=0)return;
+  const before=loadTotalH2();
+  const after=before+amount;
+  saveTotalH2(after);
+  const lvAfter=getLv(after);
+  upLevelBar();
+  if(lvAfter>getLv(before)) showLvUpToast(lvAfter);
+}
+
+function showLvUpToast(lv){
+  const t=document.getElementById('lvup-toast');
+  document.getElementById('lvup-num').textContent=`LV. ${lv}`;
+  t.style.borderColor='';t.style.background='';
+  document.querySelector('.lvup-txt').textContent='LEVEL UP!';
+  document.querySelector('.lvup-num').style.color='';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function showDemoteToast(fromLv,toLv){
+  const t=document.getElementById('lvup-toast');
+  document.getElementById('lvup-num').textContent=`LV. ${fromLv} → ${toLv}`;
+  t.style.borderColor='var(--red2)';
+  t.style.background='var(--red3)';
+  document.querySelector('.lvup-txt').textContent='LEVEL DOWN';
+  document.querySelector('.lvup-num').style.color='var(--red)';
+  t.classList.add('show');
+  setTimeout(()=>{
+    t.classList.remove('show');
+    t.style.borderColor='';t.style.background='';
+    document.querySelector('.lvup-txt').textContent='LEVEL UP!';
+    document.querySelector('.lvup-num').style.color='';
+  },2800);
+}
+
+/* ══════════════════════════════
+   튜토리얼
+══════════════════════════════ */
+function openTutorial(){
+  tutCur=1;renderTutStep();
+  document.getElementById('tov').classList.add('on');
+}
+function closeTutorial(){document.getElementById('tov').classList.remove('on');}
+window.openTutorial=openTutorial;
+window.closeTutorial=closeTutorial;
+
+function tutStep(dir){
+  tutCur=Math.max(1,Math.min(TOTAL_STEPS,tutCur+dir));
+  renderTutStep();
+}
+window.tutStep=tutStep;
+
+function renderTutStep(){
+  for(let i=1;i<=TOTAL_STEPS;i++){
+    const el=document.getElementById('step-'+i);
+    if(el) el.classList.toggle('active',i===tutCur);
+  }
+  document.getElementById('tov-step-lbl').textContent=tutCur+' / '+TOTAL_STEPS;
+  document.getElementById('tov-prev').disabled=(tutCur===1);
+  const nxt=document.getElementById('tov-next');
+  if(tutCur===TOTAL_STEPS){nxt.textContent='게임 시작 →';nxt.onclick=()=>{closeTutorial();};}
+  else{nxt.textContent='다음 →';nxt.onclick=()=>tutStep(1);}
+  // 프로그레스 도트
+  for(let i=1;i<=TOTAL_STEPS;i++){
+    const p=document.getElementById('prog-'+i);
+    if(!p)continue;
+    p.innerHTML='';
+    for(let j=1;j<=TOTAL_STEPS;j++){
+      const d=document.createElement('div');
+      d.className='sp-dot'+(j<tutCur?' done':j===tutCur?' active':'');
+      p.appendChild(d);
+    }
+  }
+}
+
+/* ══════════════════════════════
+   게임 로직
+══════════════════════════════ */
+function key(q,r){return`${q},${r},${-q-r}`;}
+function nb(k){
+  const[q,r,s]=k.split(',').map(Number);
+  return[[1,-1,0],[-1,1,0],[1,0,-1],[-1,0,1],[0,1,-1],[0,-1,1]]
+    .map(([a,b,c])=>`${q+a},${r+b},${s+c}`).filter(x=>gs.g[x]);
+}
+function hd(k1,k2){
+  const[q1,r1]=k1.split(',').map(Number),[q2,r2]=k2.split(',').map(Number);
+  return(Math.abs(q1-q2)+Math.abs(r1-r2)+Math.abs((-q1-r1)-(-q2-r2)))/2;
+}
+function v2(k,ps){
+  const d=hd(k,ps);
+  const base=d<=2?1:d<=4?3:5;
+  const mult=getLvMult(getLv(loadTotalH2()));
+  return Math.round(base*mult);
+}
+function shuf(a){return[...a].sort(()=>Math.random()-.5);}
+
+function adjMoves(){
+  const mk=Object.keys(gs.g).filter(x=>gs.g[x].owner==='player'&&gs.g[x].type!=='barrier');
+  const s=new Set();
+  mk.forEach(m=>nb(m).forEach(nk=>{
+    const h=gs.g[nk];
+    if(h&&h.owner!=='player'&&h.owner!=='beast'&&h.type!=='barrier')s.add(nk);
+  }));
+  return[...s];
+}
+function allH2Done(){
+  // 플레이어가 점령 가능한 H2 거점이 남아있는지 확인
+  // 점령 가능 = type==='h2' && owner!=='beast' (아직 빼앗기지 않은 것)
+  const remainH2=Object.values(gs.g).filter(h=>h.type==='h2'&&h.owner!=='beast').length;
+  const holding=Object.keys(gs.hold).length;
+  // 채굴한 게 있고, 남은 H2도 없고, 홀드 중인 것도 없으면 완료
+  if(gs.mined>0&&remainH2===0&&holding===0) return true;
+  return false;
+}
+
+/* 채굴 가능한 H2가 전부 괴생물체에게 빼앗겼는지 확인 */
+function allH2Lost(){
+  // 남은 H2 중 플레이어가 점령 가능한 것이 하나도 없고
+  // 홀드 중인 것도 없는 상태
+  const remainH2=Object.values(gs.g).filter(h=>h.type==='h2'&&h.owner!=='beast').length;
+  const holding=Object.keys(gs.hold).length;
+  // 채굴한 것도 없고 + 남은 H2도 없으면 → 전부 빼앗긴 것
+  return remainH2===0&&holding===0&&gs.mined===0;
+}
+function droneTargets(){
+  const myK=Object.keys(gs.g).filter(k=>gs.g[k].owner==='player');
+  const t=new Set();
+  Object.keys(gs.g).forEach(k=>{
+    const h=gs.g[k];
+    if(h.owner==='player'||h.owner==='beast'||h.type==='barrier'||h.type==='h2')return;
+    if(myK.some(m=>hd(k,m)<=DR))t.add(k);
+  });
+  return[...t];
+}
+/* BARRIER 설치 가능 조건:
+   ① 내 타일 (base·barrier·h2·mined 제외)
+   ② 내 타일 인접 1칸 이내의 빈 칸 (empty 타입, owner 없음)
+   ③ 공통: H2 거점, 기지, 이미 장벽, 채굴완료, 괴생물체 영역 불가
+*/
+function canBarrier(k){
+  const h=gs.g[k];
+  // 공통 제외 조건
+  if(h.type==='base'||h.type==='barrier'||h.type==='h2'||h.type==='mined') return false;
+  if(h.owner==='beast') return false;
+  // ① 내 타일
+  if(h.owner==='player') return true;
+  // ② 인접 1칸 빈 칸 — 내 영역에 인접해야 함
+  if(!h.owner&&h.type==='empty'){
+    const myK=Object.keys(gs.g).filter(x=>gs.g[x].owner==='player');
+    return myK.some(m=>nb(m).includes(k));
+  }
+  return false;
+}
+
+/* SONAR 유인 가능 타일:
+   - 내 영역 또는 내 인접 3칸 이내
+   - 미점령 H2(수소 아직 안 빼앗김)는 불가
+   - 괴생물체에게 빼앗긴 H2는 허용 (예외 룰)
+   - 빈 칸, 내 영역, 괴생물체 영역 모두 가능
+*/
+function sonarTargets(){
+  const myK=Object.keys(gs.g).filter(k=>gs.g[k].owner==='player');
+  const t=new Set();
+  Object.keys(gs.g).forEach(k=>{
+    const h=gs.g[k];
+    // 미점령 H2는 불가
+    if(h.type==='h2'&&h.owner!=='beast') return;
+    // 기지, 장벽은 불가
+    if(h.type==='base'||h.type==='barrier') return;
+    // 내 영역 3칸 이내
+    if(myK.some(m=>hd(k,m)<=3)) t.add(k);
+  });
+  return[...t];
+}
+
+/* SONAR 발동 — 선두 괴생물체(beastHead) 중 유인 타일에 가장 가까운 1마리를 이동 + 쿨다운 1턴 */
+function fireSonar(targetKey){
+  const heads=Object.keys(gs.g).filter(k=>gs.g[k].owner==='beast'&&gs.g[k].beastHead&&!gs.g[k].stunned);
+  if(!heads.length) return false;
+  let closest=null,minD=999;
+  heads.forEach(k=>{const d=hd(k,targetKey);if(d<minD){minD=d;closest=k;}});
+  if(!closest) return false;
+  // 이전 칸 — beastHead 해제 (영역은 유지)
+  gs.g[closest].beastHead=false;
+  // 타겟 칸으로 이동
+  const prev=gs.g[targetKey];
+  if(gs.hold[targetKey]) delete gs.hold[targetKey];
+  prev.owner='beast';
+  prev.beastHead=true;
+  prev.stunned=2; // 쿨다운 2턴 — 2턴 동안 확장 불가
+  return true;
+}
+function remain(){return MT-gs.turn+1;}
+
+function init(){
+  const g={};
+  for(let q=-HR;q<=HR;q++){
+    const r1=Math.max(-HR,-q-HR),r2=Math.min(HR,-q+HR);
+    for(let r=r1;r<=r2;r++)g[key(q,r)]={q,r,s:-q-r,type:'empty',owner:null,beastHead:false,stunned:0,barrierHp:0};
+  }
+  const ps=key(0,HR),bs=key(0,-HR);
+  const mid=Object.keys(g).filter(k=>{const[q,r]=k.split(',').map(Number);return Math.abs(q)<=3&&Math.abs(r)<=3&&Math.abs(-q-r)<=3;});
+  const bd={n:[],m:[],f:[]};
+  mid.forEach(k=>{const d=hd(k,ps);if(d<=2)bd.n.push(k);else if(d<=4)bd.m.push(k);else bd.f.push(k);});
+  const h2k=[...shuf(bd.n).slice(0,2),...shuf(bd.m).slice(0,2),...shuf(bd.f).slice(0,2)];
+  h2k.forEach(k=>{g[k].type='h2';g[k].v=v2(k,ps);});
+  g[bs].owner='beast';g[bs].beastHead=true;
+  g[ps].type='base';g[ps].owner='player';
+  const totalH2=h2k.length;
+  // SPORE: 1~6턴 사이 랜덤 2회 발동 턴 선택 (중복 없이)
+  const sporePool=shuf([2,3,4,5,6]).slice(0,2).sort((a,b)=>a-b);
+  gs={g,turn:1,h2:0,ps,hold:{},spawnQ:[5,10,14],surgeQ:[5,10,15],sporeQ:sporePool,prev:null,done:false,mined:0,totalH2,skills:{barrier:2,drone:2,sonar:true}};
+  activeSkill=null;
+  document.getElementById('res').innerHTML='';
+  document.getElementById('wb').className='wb';
+  document.getElementById('sov').className='sov';
+  updateSkillUI();upP();upH();upTurnBar();upLevelBar();renderMap();
+  sm('// 15턴 안에 최대한 채굴하세요 · ? TUTORIAL로 규칙 확인','');
+}
+
+function upTurnBar(){
+  const left=remain();
+  const pct=Math.round((left/MT)*100);
+  const col=left<=3?'var(--red)':left<=6?'var(--amber)':'var(--cyan)';
+  document.getElementById('turn-fill').style.width=pct+'%';
+  document.getElementById('turn-fill').style.background=col;
+  document.getElementById('turn-remain').textContent=left;
+  document.getElementById('turn-remain').style.color=col;
+  if(left===5&&!gs.done) sw('// WARNING — 잔여 5턴! 신중하게 선택하세요','#FFBB22','#120A00');
+  if(left===3&&!gs.done) sw('// CRITICAL — 잔여 3턴!','#FF3366','#120008');
+  // 11턴 진입 시 확장 가속 경고
+  if(gs.turn===11&&!gs.done) sw('// ALERT — LATE 페이즈! ☢ 확장 속도 3칸으로 가속!','#FF3366','#120008');
+  // SURGE 2턴 전 사전 예고
+  if(gs.surgeQ&&gs.surgeQ.length&&gs.turn===gs.surgeQ[0]-2&&!gs.done)
+    sw(`// ⚡ SURGE 예고 — ${gs.surgeQ[0]}턴에 돌진 발동!`,'#FF6644','#120A00');
+}
+
+function toggleSkill(name){
+  if(gs.done)return;
+  if(name==='sonar'){
+    if(gs.h2<=0){sm('// SONAR 불가 — 수소 부족 (H2 최소 1 필요)','bad');return;}
+    if(activeSkill==='sonar'){activeSkill=null;sm('// 스킬 취소','');updateSkillUI();renderMap();return;}
+    activeSkill='sonar';updateSkillUI();
+    sm('// SONAR LURE — 3칸 내 청록 테두리 칸을 탭해 괴생물체 선두 유인 (수소 -1)','skill');
+    renderMap();return;
+  }
+  if(gs.skills[name]<=0){sm('// '+name.toUpperCase()+' 사용 횟수 소진','bad');return;}
+  if(activeSkill===name){activeSkill=null;sm('// 스킬 취소','');updateSkillUI();renderMap();return;}
+  activeSkill=name;updateSkillUI();
+  if(name==='barrier') sm('// BARRIER — 노란 테두리 칸 탭 (내 타일 or 인접 빈 칸 · H2·기지 불가)','skill');
+  if(name==='drone')   sm('// DRONE — 보라 테두리 칸 탭으로 원거리 점령 (H2·☢ 불가)','skill');
+  renderMap();
+}
+window.toggleSkill=toggleSkill;
+
+function updateSkillUI(){
+  ['barrier','drone'].forEach(s=>{
+    const btn=document.getElementById('sk-'+s);
+    const ct=document.getElementById(s+'-ct');
+    ct.textContent=gs.skills[s]+'회';
+    btn.className='skill-btn'+(gs.skills[s]<=0?' used':activeSkill===s?' active-skill':'');
+  });
+  // SONAR — 수소 0이면 비활성
+  const sb=document.getElementById('sk-sonar');
+  const sc=document.getElementById('sonar-ct');
+  if(sb&&sc){
+    sc.textContent='H2-1';
+    sb.className='skill-btn'+(gs.h2<=0?' used':activeSkill==='sonar'?' active-skill':'');
+  }
+}
+
+function tileClass(k){
+  const h=gs.g[k];
+  if(activeSkill==='barrier'){
+    // canBarrier로 가능/불가 통합 판정 (내 타일 + 인접 빈 칸 모두 포함)
+    if(canBarrier(k))  return 'ht t-barrier-ok';
+    if(h.owner==='beast')  return h.beastHead?'ht t-beast-head':'ht t-beast-zone';
+    if(h.type==='barrier') return 'ht t-barrier';
+    if(h.type==='mined')   return 'ht t-mined';
+    if(h.type==='h2')      return `ht t-h2-${h.v}`;
+    if(h.type==='base')    return 'ht t-base';
+    if(h.owner==='player') return 'ht t-barrier-no'; // 내 타일인데 설치 불가(기지 등) — 흐릿
+    return 'ht t-empty'; // 일반 빈 칸 중 비인접 — 흐릿 없이 그냥 표시
+  }
+  if(activeSkill==='drone'){
+    const dt=droneTargets();
+    if(dt.includes(k))    return 'ht t-drone-ok';
+    if(h.type==='h2')     return `ht t-h2-${h.v} t-drone-no`;
+    if(h.owner==='beast') return h.beastHead?'ht t-beast-head':'ht t-beast-zone';
+    if(h.type==='barrier') return 'ht t-barrier';
+    if(h.type==='mined')  return 'ht t-mined';
+    if(h.type==='base')   return 'ht t-base';
+    if(h.owner==='player') return 'ht t-mine';
+    return 'ht t-empty';
+  }
+  if(activeSkill==='sonar'){
+    const st=sonarTargets();
+    if(st.includes(k)){
+      // 괴생물체에 빼앗긴 H2는 청록 표시
+      if(h.owner==='beast') return h.beastHead?'ht t-sonar-ok':'ht t-sonar-ok';
+      return 'ht t-sonar-ok';
+    }
+    // 유인 불가 — 흐릿
+    if(h.type==='h2'&&h.owner!=='beast') return `ht t-h2-${h.v} t-sonar-no`;
+    if(h.owner==='beast') return h.beastHead?'ht t-beast-head t-sonar-no':'ht t-beast-zone t-sonar-no';
+    if(h.type==='barrier') return 'ht t-barrier t-sonar-no';
+    if(h.type==='mined')  return 'ht t-mined t-sonar-no';
+    if(h.type==='base')   return 'ht t-base t-sonar-no';
+    if(h.owner==='player') return 'ht t-mine t-sonar-no';
+    return 'ht t-empty t-sonar-no';
+  }
+  const adj=adjMoves();
+  const isAdj=h.owner!=='player'&&h.owner!=='beast'&&h.type!=='barrier'&&adj.includes(k);
+  if(isAdj)              return 'ht t-adj';
+  if(k===gs.prev)        return 'ht t-prev';
+  if(h.type==='base')    return 'ht t-base';
+  if(h.type==='barrier') return h.barrierHp<=1?'ht t-barrier-weak':'ht t-barrier';
+  if(h.owner==='beast')  return h.beastHead?'ht t-beast-head':'ht t-beast-zone';
+  if(h.type==='mined')   return 'ht t-mined';
+  if(h.type==='h2')      return `ht t-h2-${h.v}`;
+  if(h.owner==='player') return 'ht t-mine';
+  return 'ht t-empty';
+}
+
+function tileInner(k){
+  const h=gs.g[k];
+  if(h.type==='base') return `<span style="color:#00CCEE;font-size:7px;pointer-events:none;letter-spacing:.04em;">BASE</span>`;
+  if(h.type==='barrier'){
+    // hp=2: 정상(초록), hp=1: 붕괴 임박(주황 + ! 경고)
+    const weak=h.barrierHp<=1;
+    const sc=weak?'#FF8822':'#44FF88';
+    const bg=weak?'#2A1A00':'#1A3A20';
+    const icon=weak?'!':'▪';
+    return `<svg width="18" height="18" viewBox="0 0 18 18" style="pointer-events:none;">
+      <polygon points="9,2 16,9 9,16 2,9" fill="${bg}" stroke="${sc}" stroke-width="1.5" ${weak?'stroke-dasharray="3 1.5"':''}/>
+      <text x="9" y="12.5" text-anchor="middle" fill="${sc}" font-size="7" font-weight="bold" font-family="Oxanium, Courier New">${icon}</text>
+    </svg>`;
+  }
+  if(h.owner==='beast'){
+    const isH=h.beastHead,col=isH?'#FF4455':'#882233',bg=isH?'#5A0818':'#2A0810',sz=isH?20:14;
+    const stun=h.stunned>0;
+    // stunned 상태면 청록 링 + ⟳ 카운터
+    if(stun){
+      return `<svg width="22" height="22" viewBox="0 0 24 24" style="pointer-events:none;">
+        <circle cx="12" cy="12" r="11" fill="${bg}" stroke="#00FFCC" stroke-width="2" stroke-dasharray="4 2"/>
+        <circle cx="12" cy="12" r="3" fill="${col}"/>
+        <path d="M12 9 A3 3 0 0 1 14.6 10.5 L19.5 7.5 A9 9 0 0 0 4.5 7.5 Z" fill="${col}"/>
+        <path d="M14.6 13.5 A3 3 0 0 1 12 15 L12 21 A9 9 0 0 0 21 7.5 Z" fill="${col}"/>
+        <path d="M9.4 13.5 A3 3 0 0 1 9.4 10.5 L4.5 7.5 A9 9 0 0 0 12 21 Z" fill="${col}"/>
+        <text x="12" y="13" text-anchor="middle" fill="#00FFCC" font-size="7" font-weight="bold" font-family="Oxanium, Courier New">⟳</text>
+      </svg>`;
+    }
+    return `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" style="pointer-events:none;">
+      <circle cx="12" cy="12" r="11" fill="${bg}" stroke="${col}" stroke-width="${isH?1.8:1}"/>
+      <circle cx="12" cy="12" r="3" fill="${col}"/>
+      <path d="M12 9 A3 3 0 0 1 14.6 10.5 L19.5 7.5 A9 9 0 0 0 4.5 7.5 Z" fill="${col}"/>
+      <path d="M14.6 13.5 A3 3 0 0 1 12 15 L12 21 A9 9 0 0 0 21 7.5 Z" fill="${col}"/>
+      <path d="M9.4 13.5 A3 3 0 0 1 9.4 10.5 L4.5 7.5 A9 9 0 0 0 12 21 Z" fill="${col}"/>
+    </svg>`;
+  }
+  if(h.type==='mined'){
+    return `<svg width="20" height="20" viewBox="0 0 20 20" style="pointer-events:none;">
+      <polygon points="10,2 18,10 10,18 2,10" fill="#004D22" stroke="#00EE88" stroke-width="1.5"/>
+      <text x="10" y="14" text-anchor="middle" fill="#00FF99" font-size="9" font-weight="bold" font-family="Oxanium, Courier New">+${h.mv}</text>
+    </svg>`;
+  }
+  if(h.type==='h2'){
+    const cols={1:'#2E6EA0',3:'#00AADD',5:'#AAEEFF'},alphas={1:.65,3:.85,5:1},sizes={1:8,3:10,5:12};
+    const col=cols[h.v]||'#00AADD',alpha=alphas[h.v]||.8,sz=sizes[h.v]||10,t=sz*2+4;
+    // 오염 패널티 중이면 카운터를 주황색 + ⚠로 표시
+    let prog='';
+    if(gs.hold[k]!==undefined){
+      if(h.contaminated){
+        prog=`<div class="tp" style="color:#FF8822;">⚠${gs.hold[k]}</div>`;
+      } else {
+        prog=`<div class="tp" style="color:#00FF99;">${gs.hold[k]}/${HN}</div>`;
+      }
+    }
+    return `<svg width="${t}" height="${t}" viewBox="0 0 ${t} ${t}" style="opacity:${alpha};pointer-events:none;overflow:visible;">
+      <circle cx="${t/2}" cy="${sz+2}" r="${sz}" fill="none" stroke="${col}" stroke-width="${Math.max(1,sz*.14)}"/>
+      <circle cx="${t/2}" cy="${sz+2}" r="${sz*.38}" fill="${col}"/>
+      <circle cx="${t/2}" cy="2" r="${sz*.18}" fill="${col}"/>
+    </svg>${prog}`;
+  }
+  // BARRIER 모드 — 설치 가능/불가 아이콘
+  if(activeSkill==='barrier'){
+    if(canBarrier(k)){
+      // 내 타일: 노란 ◇ + 아이콘, 빈 칸: 노란 ⬡ 아이콘
+      const isMine=h.owner==='player';
+      return isMine
+        ?`<svg width="14" height="14" viewBox="0 0 14 14" style="pointer-events:none;"><polygon points="7,1 13,7 7,13 1,7" fill="#1A1500" stroke="#FFDD44" stroke-width="1.5"/><text x="7" y="10" text-anchor="middle" fill="#FFDD44" font-size="8" font-family="Oxanium, Courier New">+</text></svg>`
+        :`<svg width="16" height="16" viewBox="0 0 16 16" style="pointer-events:none;"><polygon points="8,1 15,4.5 15,11.5 8,15 1,11.5 1,4.5" fill="#111500" stroke="#FFDD44" stroke-width="1.5"/><text x="8" y="11" text-anchor="middle" fill="#FFDD44" font-size="9" font-family="Oxanium, Courier New">+</text></svg>`;
+    }
+    if(h.owner==='player'){
+      return `<svg width="14" height="14" viewBox="0 0 14 14" style="pointer-events:none;"><polygon points="7,1 13,7 7,13 1,7" fill="#1A1200" stroke="#553300" stroke-width="1"/><text x="7" y="10" text-anchor="middle" fill="#553300" font-size="8" font-family="Oxanium, Courier New">✕</text></svg>`;
+    }
+  }
+  if(h.owner==='player') return `<svg width="8" height="8" viewBox="0 0 8 8" style="pointer-events:none;"><circle cx="4" cy="4" r="3" fill="#1E7090"/></svg>`;
+  if(activeSkill==='drone'&&droneTargets().includes(k)){
+    return `<svg width="14" height="14" viewBox="0 0 14 14" style="pointer-events:none;"><circle cx="7" cy="7" r="6" fill="#0A0020" stroke="#AA44FF" stroke-width="1.5"/><circle cx="7" cy="7" r="2" fill="#AA44FF"/></svg>`;
+  }
+  if(activeSkill==='sonar'&&sonarTargets().includes(k)){
+    return `<svg width="16" height="16" viewBox="0 0 16 16" style="pointer-events:none;">
+      <circle cx="8" cy="8" r="7" fill="#001A14" stroke="#00FFCC" stroke-width="1.5"/>
+      <circle cx="8" cy="8" r="3" fill="none" stroke="#00FFCC" stroke-width="1"/>
+      <circle cx="8" cy="8" r="1.5" fill="#00FFCC"/>
+    </svg>`;
+  }
+  return '';
+}
+
+function renderMap(){
+  const map=document.getElementById('map');
+  map.innerHTML='';
+  for(let r=-HR;r<=HR;r++){
+    const row=document.createElement('div');
+    row.className='hrow';
+    row.style.marginLeft=((r%2+2)%2!==0)?'22px':'0px';
+    const q1=Math.max(-HR,-r-HR),q2=Math.min(HR,-r+HR);
+    for(let q=q1;q<=q2;q++){
+      const k=key(q,r);
+      const btn=document.createElement('button');
+      btn.className=tileClass(k);
+      btn.innerHTML=tileInner(k);
+      btn.dataset.key=k;
+      btn.addEventListener('click',onTile);
+      row.appendChild(btn);
+    }
+    map.appendChild(row);
+  }
+}
+
+function onTile(e){
+  const k=e.currentTarget.dataset.key;
+  if(!k||gs.done)return;
+  const h=gs.g[k];
+  if(activeSkill==='barrier'){
+    if(!canBarrier(k)){
+      if(h.type==='h2')        sm('// BARRIER 불가 — 수소 거점에는 장벽 설치 불가','bad');
+      else if(h.type==='mined')sm('// BARRIER 불가 — 채굴 완료 타일 불가','bad');
+      else if(h.type==='base') sm('// BARRIER 불가 — 기지 타일 불가','bad');
+      else if(h.type==='barrier') sm('// 이미 장벽입니다','bad');
+      else if(h.owner==='beast') sm('// BARRIER 불가 — ☢ 오염 구역 불가','bad');
+      else sm('// BARRIER 불가 — 내 타일 또는 인접 1칸 빈 칸만 가능','bad');
+      return;
+    }
+    h.type='barrier';
+    h.owner=null;
+    h.barrierHp=2; // 장벽 내구도 2 — 괴생물체 2턴 인접 시 붕괴
+    gs.skills.barrier--;
+    activeSkill=null;updateSkillUI();renderMap();
+    const loc=h.owner===null?'전방 빈 칸':'내 타일';
+    sm('// BARRIER 설치 완료 — ☢ 진입 차단','ok');
+    return;
+  }
+  if(activeSkill==='drone'){
+    const dt=droneTargets();
+    if(!dt.includes(k)){
+      if(h.type==='h2') sm('// DRONE 불가 — 수소 거점에는 드론 전송 불가','bad');
+      else if(h.owner==='beast') sm('// DRONE 불가 — ☢ 오염 구역 진입 불가','bad');
+      else if(h.type==='barrier') sm('// DRONE 불가 — 장벽 타일 불가','bad');
+      else sm('// DRONE 불가 — 사거리(7칸) 초과 또는 점령 불가','bad');
+      return;
+    }
+    h.owner='player';gs.skills.drone--;
+    activeSkill=null;updateSkillUI();
+    sm('// DRONE 점령 완료','ok');
+    et();return;
+  }
+  if(activeSkill==='sonar'){
+    if(gs.h2<=0){sm('// SONAR 불가 — 수소 부족','bad');activeSkill=null;updateSkillUI();renderMap();return;}
+    const st=sonarTargets();
+    if(!st.includes(k)){
+      if(h.type==='h2'&&h.owner!=='beast') sm('// SONAR 불가 — 미점령 수소 거점은 유인 불가','bad');
+      else if(h.type==='base') sm('// SONAR 불가 — 기지 타일 불가','bad');
+      else if(h.type==='barrier') sm('// SONAR 불가 — 장벽 타일 불가','bad');
+      else sm('// SONAR 불가 — 3칸 이내 청록 테두리 칸만 선택 가능','bad');
+      return;
+    }
+    const ok=fireSonar(k);
+    if(ok){
+      gs.h2=Math.max(0,gs.h2-1);
+      activeSkill=null;updateSkillUI();
+      sm('// SONAR LURE 발동 — 선두 괴생물체 유인 성공 · 수소 -1','ok');
+      upH();renderMap();
+    } else {
+      sm('// SONAR 불가 — 유인할 선두 괴생물체가 없습니다','bad');
+      activeSkill=null;updateSkillUI();renderMap();
+    }
+    return;
+  }
+  if(h.type==='barrier'){sm('// BARRIER — 장벽 타일','bad');return;}
+  const adj=adjMoves();
+  if(!adj.includes(k)){sm('// INVALID — 인접한 칸만 점령 가능','bad');return;}
+  if(h.owner==='player'){sm('// OWNED','bad');return;}
+  h.owner='player';
+  if(h.type==='h2'){gs.hold[k]=0;sm(`// H2 CAPTURED [+${h.v}] — ${HN}턴 유지 시 채굴`,'ok');}
+  else sm('// ZONE EXPANDED','');
+  et();
+}
+
+function skip(){if(gs.done)return;activeSkill=null;updateSkillUI();sm('// SKIP','');et();}
+window.skip=skip;
+
+function et(){
+  gs.turn++;th();cm();
+
+  // ① 모든 H2 채굴 완료
+  if(allH2Done()){
+    gs.done=true;upP();upH();upTurnBar();renderMap();
+    popup('success');sm('// ALL H2 SECURED','ok');return;
+  }
+
+  beastExpand();spawnCheck();surgeCheck();sporeCheck();
+  upP();upH();upTurnBar();renderMap();
+
+  // ② 이동 불가 (포위)
+  if(adjMoves().length===0){
+    gs.done=true;popup('trapped');sm('// SURROUNDED','warn');return;
+  }
+
+  // ③ 모든 H2가 괴생물체에게 빼앗겨 채굴 불가
+  if(allH2Lost()){
+    gs.done=true;popup('h2lost');sm('// ALL H2 CONTAMINATED — 채굴 불가','warn');return;
+  }
+
+  // ④ 채굴은 했지만 남은 H2가 전부 괴생물체 점령 (부분 손실)
+  const remainH2=Object.values(gs.g).filter(h=>h.type==='h2'&&h.owner!=='beast').length;
+  const holding=Object.keys(gs.hold).length;
+  if(remainH2===0&&holding===0&&gs.mined>0){
+    gs.done=true;upP();upH();upTurnBar();renderMap();
+    popup('success');sm('// ALL H2 SECURED','ok');return;
+  }
+
+  // ⑤ 턴 초과
+  if(gs.turn>MT){gs.done=true;popup('timeout');sm('// TURN LIMIT REACHED','warn');return;}
+
+  um();
+}
+function th(){
+  Object.keys(gs.hold).forEach(k=>{
+    const h=gs.g[k];
+    if(h&&h.owner==='player'&&h.type==='h2'){
+      // ⑤ 오염 패널티 — 인접 타일 중 괴생물체가 2개 이상이면 이번 턴 카운터 증가 없음
+      const adjBeast=nb(k).filter(nk=>gs.g[nk]&&gs.g[nk].owner==='beast').length;
+      if(adjBeast>=2){
+        // 오염 상태 표시용 플래그 (렌더링에서 활용)
+        h.contaminated=true;
+      } else {
+        h.contaminated=false;
+        gs.hold[k]++;
+      }
+    } else {
+      delete gs.hold[k];
+    }
+  });
+}
+function cm(){
+  Object.keys(gs.hold).forEach(k=>{
+    if(gs.hold[k]>=HN&&gs.g[k].type==='h2'){
+      const v=gs.g[k].v||1;gs.g[k].type='mined';gs.g[k].mv=v;gs.h2+=v;gs.mined++;
+      delete gs.hold[k];sm(`// EXTRACTED [+${v}] — TOTAL: ${gs.h2}`,'ok');
+    }
+  });
+}
+function beastExpand(){
+  const bk=Object.keys(gs.g).filter(k=>gs.g[k].owner==='beast');
+  // stunned 카운터 차감 먼저
+  bk.forEach(k=>{
+    if(gs.g[k].stunned>0){
+      gs.g[k].stunned--;
+    }
+  });
+  // beastHead 초기화 (stunned 아닌 것만)
+  bk.forEach(k=>{
+    if(!gs.g[k].stunned) gs.g[k].beastHead=false;
+  });
+  const cands=[];
+  bk.forEach(bx=>{
+    // stunned 상태인 칸은 이번 턴 확장 불가
+    if(gs.g[bx].stunned>0) return;
+    nb(bx).forEach(nk=>{
+      const h=gs.g[nk];
+      if(!h||h.owner==='beast'||h.type==='barrier')return;
+      let sc=0;
+      if(h.owner==='player'&&h.type==='h2') sc=10+(h.v||1);
+      else if(h.owner==='player'&&h.type==='mined') sc=8+(h.mv||1);
+      else if(h.owner==='player') sc=6;
+      else if(h.type==='h2') sc=7+(h.v||1);
+      else sc=2;
+      sc+=Math.random()*.5;cands.push({k:nk,sc});
+    });
+  });
+  if(!cands.length)return;
+  cands.sort((a,b)=>b.sc-a.sc);
+  const n=gs.turn<8?1:gs.turn<11?2:3;
+  const done=new Set();
+  for(const c of cands){
+    if(done.size>=n)break;if(done.has(c.k))continue;
+    if(gs.hold[c.k])delete gs.hold[c.k];
+    gs.g[c.k].owner='beast';gs.g[c.k].beastHead=true;
+    done.add(c.k);
+  }
+
+  // ③ 장벽 붕괴 — 괴생물체 인접 타일에 장벽이 있으면 hp 차감, 0이 되면 empty로 붕괴
+  const bkAfter=Object.keys(gs.g).filter(k=>gs.g[k].owner==='beast');
+  const pressuredBarriers=new Set();
+  bkAfter.forEach(bx=>{
+    nb(bx).forEach(nk=>{
+      if(gs.g[nk]&&gs.g[nk].type==='barrier') pressuredBarriers.add(nk);
+    });
+  });
+  pressuredBarriers.forEach(bk=>{
+    const bh=gs.g[bk];
+    bh.barrierHp--;
+    if(bh.barrierHp<=0){
+      // 붕괴 — 빈 칸으로 변환 (다음 턴 괴생물체가 점령 가능)
+      bh.type='empty';
+      bh.owner=null;
+      bh.barrierHp=0;
+      sw('// BARRIER COLLAPSE — 장벽이 붕괴되었습니다!','#FF3366','#120008');
+    }
+  });
+}
+function spawnCheck(){
+  gs.prev=null;if(!gs.spawnQ.length)return;
+  const nx=gs.spawnQ[0];
+  if(gs.turn===nx-1) sw('// WARNING — 다음 턴 새 ☢ 군락 등장!','#FFBB22','#120A00');
+  if(gs.turn===nx){
+    gs.spawnQ.shift();
+    const mk=new Set(Object.keys(gs.g).filter(k=>gs.g[k].owner==='player'));
+    const cands=Object.keys(gs.g).filter(k=>!gs.g[k].owner&&gs.g[k].type!=='h2'&&gs.g[k].type!=='base'&&gs.g[k].type!=='barrier');
+    if(cands.length){
+      let best=null,bestD=0;
+      cands.forEach(k=>{const d=Math.min(...[...mk].map(m=>hd(k,m)));if(d>bestD){bestD=d;best=k;}});
+      if(best){
+        gs.g[best].owner='beast';gs.g[best].beastHead=true;gs.g[best].stunned=0;
+        sw(`// ALERT — 새 ☢ 군락! 총 ${Object.values(gs.g).filter(h=>h.owner==='beast').length}칸`,'#FF3366','#120008');
+      }
+    }
+  }
+}
+
+/* ── SURGE: 매 5턴마다 선두 1마리가 기지 방향으로 3칸 돌진 ── */
+function surgeCheck(){
+  if(!gs.surgeQ||!gs.surgeQ.length)return;
+  const nx=gs.surgeQ[0];
+  // 1턴 전 경고
+  if(gs.turn===nx-1){
+    sw('// ⚡ SURGE INCOMING — 다음 턴 괴생물체 돌진!','#FF3366','#1A0008');
+    return;
+  }
+  if(gs.turn!==nx)return;
+  gs.surgeQ.shift();
+  // 선두 중 기지에 가장 가까운 1마리 선택
+  const heads=Object.keys(gs.g).filter(k=>gs.g[k].owner==='beast'&&gs.g[k].beastHead&&!gs.g[k].stunned);
+  if(!heads.length)return;
+  let surger=null,minD=999;
+  heads.forEach(k=>{const d=hd(k,gs.ps);if(d<minD){minD=d;surger=k;}});
+  if(!surger)return;
+  // 기지 방향으로 최대 3칸 이동
+  // 통과 불가: 장벽, 플레이어 점령 H2, 채굴완료 타일 — 그 앞에서 멈춤
+  let cur=surger;
+  let steps=0;
+  for(let i=0;i<3;i++){
+    const ns=nb(cur);
+    let best=null,bd2=999;
+    ns.forEach(nk=>{
+      const h=gs.g[nk];
+      if(!h) return;
+      if(h.type==='barrier') return;              // 장벽 — 막힘
+      if(h.type==='h2'&&h.owner==='player') return; // 플레이어 H2 — 막힘
+      if(h.type==='mined') return;                // 채굴완료 — 막힘
+      const d=hd(nk,gs.ps);
+      if(d<bd2){bd2=d;best=nk;}
+    });
+    if(!best||best===cur) break;
+    if(i===0) gs.g[cur].beastHead=false;
+    cur=best;
+    const h=gs.g[cur];
+    if(gs.hold[cur]) delete gs.hold[cur];
+    h.owner='beast';h.beastHead=true;h.stunned=0;
+    steps++;
+  }
+  if(steps>0){
+    sw(`// ⚡ SURGE! 괴생물체 돌진 ${steps}칸 — 방어선 확인!`,'#FF3366','#1A0008');
+  }
+}
+
+/* ── SPORE: 초반 랜덤 2회, 플레이어 영역 인근 빈 칸에 소형 군락 생성 ── */
+function sporeCheck(){
+  if(!gs.sporeQ||!gs.sporeQ.length)return;
+  if(gs.turn!==gs.sporeQ[0])return;
+  gs.sporeQ.shift();
+  // 플레이어 영역 인근(2~4칸) 빈 칸 중 랜덤 선택
+  const myK=new Set(Object.keys(gs.g).filter(k=>gs.g[k].owner==='player'));
+  const bK=new Set(Object.keys(gs.g).filter(k=>gs.g[k].owner==='beast'));
+  const cands=Object.keys(gs.g).filter(k=>{
+    const h=gs.g[k];
+    // 수소 타일(점령 여부 무관), 기지, 장벽, 채굴완료, 이미 괴생물체 영역 모두 제외
+    if(h.type==='h2')   return false;  // 미점령 H2
+    if(h.type==='base') return false;
+    if(h.type==='barrier') return false;
+    if(h.type==='mined') return false;
+    if(h.owner==='beast') return false; // 이미 괴생물체 영역
+    // 플레이어 영역 2~4칸 이내
+    const minD=Math.min(...[...myK].map(m=>hd(k,m)));
+    return minD>=2&&minD<=4;
+  });
+  if(!cands.length)return;
+  const target=cands[Math.floor(Math.random()*cands.length)];
+  gs.g[target].owner='beast';gs.g[target].beastHead=true;gs.g[target].stunned=0;
+  sw('// 🧫 SPORE! 포자 군락 출현 — 내부 방어 확인!','#CC44FF','#0D0020');
+}
+
+function popup(type){
+  const cfg={
+    success:{tag:'// MISSION COMPLETE //',tagCol:'#00BB77',border:'#00BB77',titCol:'#00FF99',
+      tit:'채굴 성공!',sub:`${gs.mined}/${gs.totalH2} 채굴 완료 · 이동력 +${Math.floor(gs.h2/2)+3}`,
+      sl:'H2 SECURED → TRANSIT FUEL',btnCls:'spb g',btnTxt:'수송전 시작 →'},
+    trapped:{tag:'// OPERATION HALTED //',tagCol:'#FFBB22',border:'#CC9900',titCol:'#FFBB22',
+      tit:'이동 불가 — 채굴 종료',sub:`☢ 에 포위 · ${gs.mined}/${gs.totalH2} 채굴 완료`,
+      sl:'확보된 H2로 수송전 진행',btnCls:'spb y',btnTxt:'결과 확인'},
+    h2lost:{tag:'// MISSION FAILED //',tagCol:'#FF3366',border:'#CC2244',titCol:'#FF3366',
+      tit:'H2 전량 오염',sub:`☢ 가 모든 수소 거점 점령 · ${gs.mined}/${gs.totalH2} 채굴 완료`,
+      sl:'확보된 H2로 수송전 진행',btnCls:'spb r',btnTxt:'결과 확인'},
+    timeout:{tag:'// TIME LIMIT REACHED //',tagCol:'#FF3366',border:'#CC2244',titCol:'#FF3366',
+      tit:'턴 제한 초과',sub:`15턴 종료 · ${gs.mined}/${gs.totalH2} 채굴 완료`,
+      sl:'수송전은 확보된 H2로 진행',btnCls:'spb r',btnTxt:'결과 확인'},
+  };
+  const c=cfg[type];
+  document.getElementById('sbox').style.border=`1px solid ${c.border}`;
+  document.getElementById('stag').style.color=c.tagCol;document.getElementById('stag').textContent=c.tag;
+  document.getElementById('stit').style.color=c.titCol;document.getElementById('stit').textContent=c.tit;
+  document.getElementById('ssub').textContent=c.sub;
+  document.getElementById('snum').style.display='block';document.getElementById('snum').textContent=gs.h2;
+  document.getElementById('sl2').textContent=c.sl;document.getElementById('sl2').style.display='block';
+  const b=document.getElementById('spb1');b.className=c.btnCls;b.textContent=c.btnTxt;
+  document.getElementById('sov').className='sov on';
+}
+function closeS(){document.getElementById('sov').className='sov';if(gs.done)res();}
+window.closeS=closeS;
+function sw(msg,color,bg){
+  const el=document.getElementById('wb');
+  el.style.color=color;el.style.borderColor=color+'55';el.style.background=bg;
+  document.getElementById('wt').textContent=msg;el.className='wb on';
+}
+function um(){
+  const rem=Object.values(gs.g).filter(h=>h.type==='h2').length;
+  const hc=Object.keys(gs.hold).length;
+  const mh=hc?Math.max(...Object.values(gs.hold)):0;
+  const ph=gs.turn<6?'EARLY':gs.turn<11?'MID':'LATE';
+  const bz=Object.values(gs.g).filter(h=>h.owner==='beast').length;
+  const left=remain();
+  const wb=document.getElementById('wb');if(wb.className.includes('on')&&gs.turn%2===0)wb.className='wb';
+  if(hc>0)sm(`// [${ph}] HOLDING ${hc}x — ${mh}/${HN} · ☢ ${bz}칸 · 잔여 ${left}턴`,'ok');
+  else if(rem>0)sm(`// [${ph}${gs.turn>=11?' ☢×3':''}] H2 ${rem}곳 · ☢ ${bz}칸 · 잔여 ${left}턴`,'');
+  else sm(`// [${ph}] ALL CLEARED — H2: ${gs.h2}`,'warn');
+}
+function upP(){
+  const t=gs.turn;
+  ['d1','d2','d3','s1','s2','s3'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.className=id.startsWith('d')?'pd':'ps';
+  });
+  if(t<6){document.getElementById('d1').className='pd on';document.getElementById('s1').className='ps on';}
+  else if(t<11){document.getElementById('d1').className='pd dn';document.getElementById('s1').className='ps dn';document.getElementById('d2').className='pd on';document.getElementById('s2').className='ps on';}
+  else{document.getElementById('d1').className='pd dn';document.getElementById('s1').className='ps dn';document.getElementById('d2').className='pd dn';document.getElementById('s2').className='ps dn';document.getElementById('d3').className='pd on';document.getElementById('s3').className='ps on';}
+  document.getElementById('tn').textContent=String(t).padStart(2,'0');
+}
+function upH(){
+  const mc=Object.values(gs.g).filter(h=>h.owner==='player').length;
+  const hc=Object.keys(gs.hold).length;
+  const mh=hc?Math.max(...Object.values(gs.hold)):0;
+  const bz=Object.values(gs.g).filter(h=>h.owner==='beast').length;
+  document.getElementById('hz').textContent=mc;
+  document.getElementById('hh').textContent=gs.h2;
+  const ho=document.getElementById('hho');
+  if(hc>0){ho.textContent=hc+'x('+mh+'/'+HN+')';ho.style.color='#FFBB22';}
+  else{ho.textContent='—';ho.style.color='var(--text3)';}
+  const th=document.getElementById('hth');
+  th.textContent=bz+'칸';
+  th.style.color=bz>=12?'var(--red)':bz>=6?'var(--amber)':'var(--text3)';
+}
+function res(){
+  if(gs.resShown) return;
+  gs.resShown=true;
+  const h2=gs.h2,max=18,pct=Math.round(h2/max*100);
+  const grade=pct>=90?'S':pct>=70?'A':pct>=50?'B':pct>=25?'C':'F';
+  const gc={S:'#00FF99',A:'#00CCEE',B:'#FFBB22',C:'#FF3366',F:'#2A5060'};
+  const gt={S:'PERFECT EXTRACTION',A:'MISSION SUCCESS',B:'PARTIAL SUCCESS',C:'BARELY SURVIVED',F:'MISSION FAILED'};
+
+  // 판 결과 처리 — 레벨업/강등/성공 판정
+  const result=processH2Result(h2);
+  const totalNow=loadTotalH2();
+  const lvNow=getLv(totalNow);
+
+  // 레벨업/강등 토스트
+  if(result.type==='levelup') showLvUpToast(result.newLv);
+  else if(result.type==='demote') showDemoteToast(result.lv,result.newLv);
+
+  // 강등 메시지
+  let lvNote='';
+  if(result.type==='demote'){
+    lvNote=`<div style="font-size:9px;color:var(--red);letter-spacing:.06em;margin-bottom:6px;">
+      ▼ LEVEL DOWN — LV.${result.lv} → LV.${result.newLv}
+      ${result.required?`<br>최소 ${result.required} 필요 · ${result.got} 획득`:''}
+      <br>누적 수소 ${result.demoteTo}으로 리셋
+    </div>`;
+  } else if(result.type==='levelup'){
+    lvNote=`<div style="font-size:9px;color:#CC88FF;letter-spacing:.06em;margin-bottom:6px;">▲ LEVEL UP! LV.${result.newLv}</div>`;
+  }
+
+  const mult=getLvMult(lvNow);
+  const maxH2now=Math.round(18*mult);
+  document.getElementById('res').innerHTML=`
+    <div class="rbox">
+      <div style="font-size:8px;color:var(--text2);letter-spacing:.15em;margin-bottom:4px;">// OPERATION COMPLETE //</div>
+      <div class="rg" style="color:${gc[grade]};">${grade}</div>
+      <div class="rt">${gt[grade]}</div>
+      <div class="rs">H2 ${h2}/${maxH2now} · ${gs.mined}/${gs.totalH2} 채굴 완료</div>
+      ${lvNote}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:8px 10px;background:#0A0020;border:0.5px solid #AA44FF;border-radius:2px;">
+        <span style="font-size:9px;color:#AA44FF;letter-spacing:.1em;">LV. ${lvNow} <span style="color:#5A3A88;">×${mult.toFixed(1)}</span></span>
+        <span style="font-size:9px;color:var(--text3);letter-spacing:.06em;">누적 수소 ${totalNow}</span>
+      </div>
+      <button class="rbtn" onclick="rst()">↺ RETRY MISSION</button>
+    </div>`;
+  sm('// COMPLETE — H2 '+h2+'/'+max+' · LV.'+lvNow,'ok');
+}
+function sm(t,c){const el=document.getElementById('msg');el.textContent=t;el.className='msg'+(c?' '+c:'');}
+function rst(){
+  // 재시작 전 이번 판 수소 저장 (res()를 거치지 않고 재시작하는 경우)
+  if(!gs.resShown&&gs.h2>=0){
+    const result=processH2Result(gs.h2);
+    if(result.type==='levelup') showLvUpToast(result.newLv);
+    else if(result.type==='demote') showDemoteToast(result.lv,result.newLv);
+    gs.resShown=true;
+  }
+  activeSkill=null;
+  init();
+}
+window.rst=rst;
+
+// 첫 실행
+init();
+})();
+</script>
+</body>
+</html>
